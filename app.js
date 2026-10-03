@@ -1,5 +1,20 @@
 'use strict';
 const $=id=>document.getElementById(id);
+// Change to true when you want HRRN, MLQ and MLFQ back in the website.
+const SHOW_EXTRA_ALGORITHMS=false;
+const visibleAlgorithms=['fcfs','sjf','srtf','priority','priority_p','rr',...(SHOW_EXTRA_ALGORITHMS?['hrrn','mlq','mlfq']:[])];
+function configureAlgorithms(){
+  $('algorithm').replaceChildren(...visibleAlgorithms.map(key=>{const option=el('option',({fcfs:'FCFS',sjf:'SJF — Non-Preemptive',srtf:'SRTF — Preemptive SJF',priority:'Priority — Non-Preemptive',priority_p:'Priority — Preemptive',rr:'Round Robin',hrrn:'HRRN',mlq:'Multilevel Queue (MLQ)',mlfq:'Multilevel Feedback Queue (MLFQ)'})[key]);option.value=key;return option;}));
+  $('algorithm').value='fcfs';
+  for(const id of ['mlq-column','faq-hrrn','faq-mlq','faq-mlfq'])$(id).hidden=!SHOW_EXTRA_ALGORITHMS;
+  $('compare-title').textContent='Same workload. '+(SHOW_EXTRA_ALGORITHMS?'Nine':'Six')+' approaches.';
+  $('quantum-help').textContent=SHOW_EXTRA_ALGORITHMS?'RR and MLQ use q. MLFQ uses q, then 2q.':'Round Robin uses q as its time slice.';
+  $('editor-help').textContent='Smaller priority number = higher priority. '+(SHOW_EXTRA_ALGORITHMS?'MLQ: High uses RR; Low uses FCFS. ':'')+'These inputs also feed the comparison.';
+  $('input-algorithms-help').textContent='Arrival and burst affect all available algorithms. Priority numbers affect the two Priority variants. '+(SHOW_EXTRA_ALGORITHMS?'The MLQ queue assignment affects only MLQ. Quantum affects Round Robin, MLQ and MLFQ. ':'Quantum affects Round Robin. ')+'The comparison uses the same input rows for every algorithm.';
+  $('algorithm-footer').textContent='FCFS / SJF / SRTF / PRIORITY NP & P / RR'+(SHOW_EXTRA_ALGORITHMS?' / HRRN / MLQ / MLFQ':'');
+  $('playback-detail-heading').textContent=SHOW_EXTRA_ALGORITHMS?'Priority / queue':'Priority';
+}
+
 const palette=['#2553df','#078080','#8751cb','#b36016','#bb3e6a','#4e688d','#537a13','#9a482d'];
 const names={fcfs:'First-Come-First-Served',sjf:'Shortest Job First',srtf:'Shortest Remaining Time First',priority:'Priority — Non-Preemptive',priority_p:'Priority — Preemptive',hrrn:'Highest Response Ratio Next (HRRN)',mlq:'Multilevel Queue',mlfq:'Multilevel Feedback Queue',rr:'Round Robin'};
 const descriptions={fcfs:'Processes run to completion in arrival order. Earlier arrivals are served first.',sjf:'The shortest available job runs to completion. New arrivals do not interrupt the running process.',rr:'Each ready process gets up to one time quantum, then returns to the back of the queue if unfinished.'};
@@ -23,7 +38,7 @@ function addRow(p){
   const tr=el('tr');
   const labels={id:'Process',arrival:'Arrival time',burst:'Burst time',priority:'Priority',queue:'MLQ queue'};
   ['id','arrival','burst','priority','queue'].forEach(key=>{
-    const td=el('td');td.dataset.label=labels[key];
+    const td=el('td');td.dataset.label=labels[key];if(key==='queue')td.hidden=!SHOW_EXTRA_ALGORITHMS;
     const input=el(key==='queue'?'select':'input');input.dataset.field=key;
     input.setAttribute('aria-label',labels[key]+' for '+p.id);
     if(key==='queue'){
@@ -82,12 +97,12 @@ function render(all,status){
   $('report-status').textContent='';resetPlayback(r);
 }
 function run(status='Simulation complete'){
-  try{if(typeof Scheduler==='undefined'||Scheduler.VERSION!=='20261003.8')throw new Error('The project files are from different versions. Run the latest updater in this folder, then restart the server and refresh the page.');const rows=inputs(),q=numericValue($('quantum').value);if(numericValue($('process-number').value)!==rows.length)throw new Error('Enter a valid process count from 1 to 30 and press Enter.');Scheduler.validate(rows,q);const all={};Scheduler.ALGORITHMS.forEach(k=>all[k]=Scheduler.simulate(rows,k,q));render(all,status);$('error').hidden=true;return true;}
+  try{if(typeof Scheduler==='undefined'||Scheduler.VERSION!=='20261003.9')throw new Error('The project files are from different versions. Run the latest updater in this folder, then restart the server and refresh the page.');const rows=inputs(),q=numericValue($('quantum').value);if(numericValue($('process-number').value)!==rows.length)throw new Error('Enter a valid process count from 1 to 30 and press Enter.');Scheduler.validate(rows,q);const all={};visibleAlgorithms.forEach(k=>all[k]=Scheduler.simulate(rows,k,q));render(all,status);$('error').hidden=true;return true;}
   catch(e){pausePlayback();$('playback-controls').disabled=true;$('playback-note').textContent='Fix the inputs and run again to update playback.';$('report-status').textContent='Report blocked: fix the input error above.';$('error').textContent=e.message;$('error').hidden=false;$('run-state').textContent='Fix inputs · previous results shown';return false;}
 }
 // Reuse the same workload when selecting a comparison row or dropdown option.
 function selectAlgorithm(algorithm,scrollToResults=false){
-  if(!names[algorithm])return;
+  if(!visibleAlgorithms.includes(algorithm))return;
   $('algorithm').value=algorithm;
   if(inputsChanged||!lastResults){if(!run())return;}
   else {render(lastResults,'Showing '+names[algorithm]);$('error').hidden=true;}
@@ -119,7 +134,7 @@ function pausePlayback(){
 function resetPlayback(result){
   pausePlayback();playbackModel=Scheduler.createPlayback(result);playbackTime=0;
   $('playback-controls').disabled=false;$('playback-time').max=result.makespan;
-  $('playback-note').textContent='Processes are listed in input order. Next event jumps to an arrival, completion, CPU change, quantum boundary, or MLFQ demotion.';
+  $('playback-note').textContent='Processes are listed in input order. Next event jumps to an arrival, completion, CPU change or quantum boundary'+(SHOW_EXTRA_ALGORITHMS?', or MLFQ demotion.':'.');
   renderPlayback();
 }
 function playbackExplanation(state){
@@ -163,7 +178,7 @@ function renderPlayback(){
   state.rows.forEach(p=>{
     const tr=el('tr',undefined,p.status==='Running'?'playback-running':'');
     const detail=['mlq','mlfq'].includes(r.algorithm)?(p.status==='Completed'||p.status==='Not arrived'?'—':'Q'+p.level):['priority','priority_p'].includes(r.algorithm)?String(p.priority):'—';
-    [p.id,p.status,p.executed,p.remaining,p.waitingSoFar,detail].forEach((value,i)=>{const td=el('td',String(value));td.dataset.label=['Process','State','CPU used','Remaining','Wait so far','Priority / queue'][i];tr.append(td);});
+    [p.id,p.status,p.executed,p.remaining,p.waitingSoFar,detail].forEach((value,i)=>{const td=el('td',String(value));td.dataset.label=['Process','State','CPU used','Remaining','Wait so far',(SHOW_EXTRA_ALGORITHMS?'Priority / queue':'Priority')][i];tr.append(td);});
     $('playback-body').append(tr);
   });
   $('playback-previous').disabled=state.time===0;
@@ -196,7 +211,7 @@ function ensureReportResults(){
   if(typeof Scheduler==='undefined')return run();
   const current=inputs(),r=displayedResult;
   const unchanged=r&&current.length===r.rows.length&&current.every((p,i)=>['id','arrival','burst','priority','queue'].every(field=>p[field]===r.rows[i][field]));
-  if(inputsChanged||!unchanged||numericValue($('process-number').value)!==current.length||numericValue($('quantum').value)!==r.quantum||$('algorithm').value!==r.algorithm||Scheduler.VERSION!=='20261003.8')return run();
+  if(inputsChanged||!unchanged||numericValue($('process-number').value)!==current.length||numericValue($('quantum').value)!==r.quantum||$('algorithm').value!==r.algorithm||Scheduler.VERSION!=='20261003.9')return run();
   return true;
 }
 function csvCell(value){
@@ -206,13 +221,14 @@ function csvCell(value){
   return '"'+text.replace(/"/g,'""')+'"';
 }
 function csvReport(result,all){
-  const lines=[['Process Scheduler report'],['Algorithm',names[result.algorithm]],['Time quantum',result.quantum],['Quantum applies to','Round Robin, MLQ and MLFQ'],['Model','Single CPU; one burst per process; no I/O; zero switching overhead'],['Policy',descriptions[result.algorithm]],[],['Process results'],['Process','Arrival','Burst','Priority input','MLQ queue input','Completion (CT)','Turnaround (TAT)','Waiting (WT)','Response (RT)']];
+  const lines=[['Process Scheduler report'],['Algorithm',names[result.algorithm]],['Time quantum',result.quantum],['Quantum applies to',SHOW_EXTRA_ALGORITHMS?'Round Robin, MLQ and MLFQ':'Round Robin'],['Model','Single CPU; one burst per process; no I/O; zero switching overhead'],['Policy',descriptions[result.algorithm]],[],['Process results'],['Process','Arrival','Burst','Priority input','MLQ queue input','Completion (CT)','Turnaround (TAT)','Waiting (WT)','Response (RT)']];
   result.rows.forEach(p=>lines.push([p.id,p.arrival,p.burst,p.priority,p.queue,p.completion,p.turnaround,p.waiting,p.response]));
   for(const kind of ['totals','averages']){const v=result[kind];lines.push([kind==='totals'?'Total':'Average',v.arrival,v.burst,'','',v.completion,v.turnaround,v.waiting,v.response]);}
   lines.push([],['CPU statistics'],['Elapsed time',result.makespan],['Busy time',result.busy],['Idle time',result.idle],['CPU utilization (%)',result.utilization],['Throughput (processes/unit)',result.throughput],['Context switches',result.contextSwitches],['Context switch definition','Direct change between different processes; idle transitions and initial dispatch excluded'],[],['Algorithm comparison'],['Algorithm','Average CT','Average TAT','Average WT','Average RT','Context switches']);
   Object.entries(all).forEach(([key,r])=>lines.push([names[key],r.averages.completion,r.averages.turnaround,r.averages.waiting,r.averages.response,r.contextSwitches]));
   lines.push([],['Complete execution timeline'],['Type','Process','Start','End','Duration']);
   result.timeline.forEach(s=>lines.push([s.id===null?'Idle':'Process',s.id??'',s.start,s.end,s.end-s.start]));
+  if(!SHOW_EXTRA_ALGORITHMS){const start=lines.findIndex(row=>row[0]==='Process results')+1;for(let i=start;i<=start+result.rows.length+2;i++)lines[i].splice(4,1);}
   return '\uFEFF'+lines.map(row=>row.map(csvCell).join(',')).join('\r\n')+'\r\n';
 }
 function exportCsv(){
@@ -231,7 +247,7 @@ function buildPrintReport(){
   const r=displayedResult,report=$('print-report');report.replaceChildren();
   report.append(el('h1','Process Scheduler — Results'),el('h2',names[r.algorithm]),el('p',descriptions[r.algorithm]));
   report.append(el('p','Single CPU · one burst per process · no I/O · zero switching overhead. '+(['rr','mlq','mlfq'].includes(r.algorithm)?'Quantum q = '+r.quantum+'. ':'')+'All times are abstract units.'));
-  report.append(el('h3','Process inputs'),reportTable(['Process','Arrival','Burst','Priority input','MLQ input queue'],r.rows.map(p=>[p.id,p.arrival,p.burst,p.priority,'Q'+p.queue])));
+  report.append(el('h3','Process inputs'),reportTable(['Process','Arrival','Burst','Priority input',...(SHOW_EXTRA_ALGORITHMS?['MLQ input queue']:[])],r.rows.map(p=>[p.id,p.arrival,p.burst,p.priority,...(SHOW_EXTRA_ALGORITHMS?['Q'+p.queue]:[])])));
   const fields=['arrival','burst','completion','turnaround','waiting','response'];
   const rows=r.rows.map(p=>[p.id,...fields.map(field=>p[field])]);
   for(const kind of ['totals','averages'])rows.push([kind==='totals'?'Total':'Average',...fields.map(field=>number(r[kind][field]))]);
@@ -255,7 +271,7 @@ window.addEventListener('beforeprint',()=>{
   if(ensureReportResults())buildPrintReport();
   else $('print-report').replaceChildren(el('h1','Process Scheduler'),el('p','No current report. Fix the input error on the website and run the simulation again.'));
 });
-setRows(sample);run('Sample results');
+configureAlgorithms();setRows(sample);run('Sample results');
 
 // Refit the chart when rotating a device or resizing the browser.
 if(typeof window!=='undefined'){

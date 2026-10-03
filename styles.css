@@ -147,3 +147,6 @@ footer{flex-wrap:wrap;align-items:flex-start}footer span{max-width:100%;min-widt
  #print-report .print-timeline{display:flex;flex-wrap:wrap;gap:5pt}
  #print-report .print-timeline span{display:block;border:1.5pt solid #777;padding:5pt 6pt;break-inside:avoid;overflow-wrap:anywhere;max-width:100%;font-size:9pt}
 }
+
+/* Keep temporarily hidden features hidden in every responsive layout. */
+[hidden]{display:none!important}

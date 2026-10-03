@@ -234,7 +234,7 @@
     }
     return { at, events };
   }
-  const api = { simulate, validate, createPlayback, LIMITS, ALGORITHMS, VERSION: '20261003.8' };
+  const api = { simulate, validate, createPlayback, LIMITS, ALGORITHMS, VERSION: '20261003.9' };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Scheduler = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

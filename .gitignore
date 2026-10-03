@@ -1,0 +1,7 @@
+
+backups/
+update_scheduler.py
+*.patch
+*.zip
+.DS_Store
+__pycache__/

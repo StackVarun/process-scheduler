@@ -1,86 +1,123 @@
-# Process Scheduler — Nine Algorithms
+# Process Scheduler
 
-Plain HTML, CSS, and JavaScript. No build step, framework, database, or backend required. Compatible with GitHub Pages.
+A browser-based CPU scheduling simulator built for an Operating Systems course project. Enter a workload, compare nine scheduling algorithms, and explore how each algorithm affects process execution and waiting time.
 
-## Update from the previous version
+[Open the website](https://stackvarun.github.io/process-scheduler/)
 
-Keep the old folder as a backup. Extract the entire ZIP into its new `process-scheduler-fixed` folder. Stop any old server with Control+C. Open the new folder in VS Code and start its server. Avoid combining individual files from different downloads. Refresh with Cmd+Shift+R. Assets have a shared version identifier to avoid loading stale CSS/JavaScript.
+## Features
 
-## Run on your Mac
+- Simulate nine CPU scheduling algorithms using the same process inputs.
+- View a Gantt chart with process execution intervals and CPU idle periods.
+- Calculate completion, turnaround, waiting, and response times, with totals and averages.
+- Compare average waiting, turnaround, and response times across algorithms.
+- Explore execution with play/pause, playback speeds, a clock slider, and step controls.
+- Inspect each process's status, executed time, remaining burst time, and waiting time during playback.
+- Export results to CSV or use the browser's print dialog to save a PDF.
+- Use a responsive interface with input validation and an algorithm FAQ.
 
-Open this folder in VS Code. In its terminal run:
+## Supported algorithms
+
+| Algorithm | Scheduling policy |
+| --- | --- |
+| First Come, First Served (FCFS) | Non-preemptive; runs processes in arrival order. |
+| Shortest Job First (SJF) | Non-preemptive; selects the shortest available burst. |
+| Shortest Remaining Time First (SRTF) | Preemptive; selects the shortest remaining burst. |
+| Priority — Non-Preemptive | Runs the highest-priority available process to completion. |
+| Priority — Preemptive | A newly available process with a higher priority can interrupt execution. |
+| Round Robin (RR) | Uses a FIFO ready queue and a configurable time quantum. |
+| Highest Response Ratio Next (HRRN) | Non-preemptive; selects the highest ratio of (waiting time + burst time) / burst time. |
+| Multilevel Queue (MLQ) | Two fixed queues: Q0 uses Round Robin; Q1 uses FCFS. Q0 has strict priority. |
+| Multilevel Feedback Queue (MLFQ) | Three queues: Q0 uses RR with quantum q, Q1 uses RR with quantum 2q, and Q2 uses FCFS. Processes move down after using their allowance. |
+
+A smaller priority number means a higher priority. In MLQ and MLFQ, a ready process in a higher queue can interrupt a process in a lower queue. MLFQ starts every process in Q0 and does not implement aging or periodic priority boosts.
+
+## Technology stack
+
+| Component | Technology |
+| --- | --- |
+| Page structure | HTML5 |
+| Layout and responsive styling | CSS3, Flexbox, Grid, and media queries |
+| Scheduling logic and interface | Vanilla JavaScript |
+| Gantt chart | HTML elements styled with CSS |
+| Hosting | GitHub Pages |
+| Algorithm tests | JavaScript, run with Node.js |
+
+The application runs entirely in the browser. It requires no backend, database, external JavaScript libraries, or build step.
+
+## Run locally
+
+Clone the repository:
+
+```bash
+git clone https://github.com/StackVarun/process-scheduler.git
+cd process-scheduler
+```
+
+Start a local server with Python 3:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Visit http://localhost:8000. Stop with Control+C. You can also open index.html directly.
+Open [http://localhost:8000](http://localhost:8000) in a browser. Press Ctrl+C in the terminal to stop the server.
 
-## Features
+Python is only needed for this local server; it is not part of the application's scheduling logic.
 
-- FCFS, non-preemptive SJF, SRTF (preemptive SJF), non-preemptive Priority, preemptive Priority, Round Robin, HRRN, MLQ, and MLFQ.
-- Choose 1–30 process rows by typing the count and pressing Enter (or clicking outside), or use + / −. Add/remove individual rows.
-- Input arrival, burst, priority, MLQ queue, and base time quantum.
-- Gantt chart with idle periods; per-process CT, TAT, WT, and response time.
-- Total and Average rows for arrival, burst, CT, TAT, WT, and response.
-- Click any algorithm name in the comparison table to display its results and timeline, retaining your inputs. The algorithm dropdown stays synchronized. Changed inputs are recalculated automatically when switching.
-- Compare all nine algorithms using the same input; CPU utilization, throughput, and context-switch count.
-- Sample data, reset, input validation, and explicit scheduling rules.
+## How to use
 
-## Scheduling policies
+1. Set the number of processes and fill in their arrival and burst times.
+2. Set priorities for priority scheduling and queue assignments for MLQ.
+3. Choose a time quantum for Round Robin and the multilevel algorithms.
+4. Run the simulation and inspect the process results and execution timeline.
+5. Click another algorithm in the comparison section to view its results using the same workload.
+6. Use playback controls to explore execution, or export the selected results.
 
-Smaller priority numbers mean higher priority. Priority NP runs to completion. Priority P interrupts only for a strictly higher priority; equal priority does not preempt. HRRN chooses the highest (waiting + burst) / burst at every dispatch and is non-preemptive.
+The simulator accepts up to 30 processes. Arrival times must be integers from 0 to 10,000; burst times, priorities, and the time quantum must be integers from 1 to 10,000. Process IDs must be unique.
 
-MLQ: fixed Q0 with RR(q) and Q1 with FCFS. Q0 has strict priority and interrupts Q1. Jobs never change queues.
+## Scheduling metrics
 
-MLFQ: all jobs start at Q0 RR(q); exhausting its allowance demotes to Q1 RR(2q), then Q2 FCFS. Higher queues interrupt lower queues. Interrupted jobs retain their queue position and consumed allowance. No periodic priority boost or aging.
+| Metric | Meaning / calculation |
+| --- | --- |
+| Completion Time (CT) | Clock time when a process finishes. |
+| Turnaround Time (TAT) | Completion time − arrival time. |
+| Waiting Time (WT) | Turnaround time − burst time. |
+| Response Time (RT) | First execution time − arrival time. |
+| Average time | Sum of the corresponding process values ÷ number of processes. |
+| CPU utilization | Total burst time ÷ simulation duration × 100. |
+| Throughput | Number of completed processes ÷ simulation duration. |
 
-FCFS/SJF/SRTF/HRRN and dispatch ties use arrival time, then input position. RR admits arrivals at slice boundaries before requeueing the unfinished job. Adjacent same-job segments merge visually. Charts show at most the first 400 segments with a notice, while results use the full schedule.
+The interface also reports CPU idle time and context switches. Context switches count direct transitions between different running processes; initial dispatch and transitions through idle time are excluded.
 
-One CPU, one burst per job, no I/O blocking, zero switching overhead. Context switches count only direct changes between different jobs. Time is in abstract integer units. Arrival 0–10,000; burst, quantum, and priority 1–10,000. MLQ queue is High (0) or Low (1). Numeric fields use plain typing; no spinner or mouse-wheel changes.
+## Project files
 
-## Files and learning
+| File | Purpose |
+| --- | --- |
+| [index.html](index.html) | Page structure, input controls, results sections, and FAQ. |
+| [styles.css](styles.css) | Interface styling, responsive layouts, and print formatting. |
+| [app.js](app.js) | Input handling, result rendering, algorithm selection, playback, and exports. |
+| [scheduler.js](scheduler.js) | Scheduling algorithms, validation, metric calculations, and playback state. |
+| [scheduler.test.js](scheduler.test.js) | Automated checks for scheduling behavior and calculated results. |
+| [DEMO_GUIDE.md](DEMO_GUIDE.md) | Reference material for understanding and demonstrating the project. |
 
-See DEMO_GUIDE.md for function-by-function explanations, variables, formulas, queue policies, and traces. scheduler.js contains the algorithm code; app.js reads inputs and renders results. index.html and styles.css define the interface.
+## Run the algorithm tests
 
-## Checks
+With Node.js installed, run:
 
 ```bash
 node scheduler.test.js
 ```
 
-Checks cover all nine algorithms, expected schedules, RR boundaries, priority preemption, MLQ interruptions, MLFQ budgets, idle periods, totals/averages, validation, and 900 generated timing/work-conservation checks. Node is needed only for these tests.
+Node.js is needed for this test command, not for using the website.
 
-## Publish on GitHub Pages
+## Simulation assumptions and display limits
 
-1. Create an empty GitHub repository named `process-scheduler`. A public repository is the simplest option.
-2. In VS Code's terminal, from this folder, run:
+- One CPU and one CPU burst per process; no I/O blocking is simulated.
+- Time values use abstract integer units.
+- Context switches have zero time overhead.
+- Ties generally use arrival order, then input order. Equal-priority arrivals do not interrupt the currently running process in preemptive priority scheduling.
+- Round Robin admits processes arriving at a time-slice boundary before requeueing the current process.
+- Consecutive execution intervals for the same process are merged in the displayed timeline.
+- The on-screen timeline displays up to 400 segments at once; its window follows playback.
+- Printed reports include up to 100 timeline segments. CSV exports include the complete execution timeline.
+- Gantt bars have a minimum display width for readability; use their time labels for exact durations.
 
-```bash
-git init
-git add .
-git commit -m "Build CPU scheduling simulator"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/process-scheduler.git
-git push -u origin main
-```
-
-Replace `YOUR_USERNAME` with your GitHub username. Authenticate to GitHub if prompted; do not use your account password as a Git password.
-
-3. In the GitHub repository: **Settings → Pages → Build and deployment**.
-4. Choose **Deploy from a branch**, select **main** and **/(root)**, and save.
-5. Wait for deployment to finish. The URL will be `https://YOUR_USERNAME.github.io/process-scheduler/`.
-
-Keep `index.html` at the repository root, not inside another nested folder. All asset links are relative so repository-based Pages URLs work.
-
-For subsequent changes:
-
-```bash
-git add .
-git commit -m "Update scheduler"
-git push
-```
-
-## Report handoff
-
-Capture each algorithm's chart and result table using the same input. Include quantum, priority convention, queue assignments and policies with screenshots. The Total CT column is a sum of timestamps, not CPU elapsed time. This is a scheduling simulation, not control of your Mac's operating system.

@@ -28,9 +28,11 @@
 
   // Shared clock, ready queue and Gantt chart operations.
   function createState(input) {
-    const processes = input.map((p, index) => ({ ...p, id: p.id.trim(), index,
+    const processes = input.map((p, index) => ({
+      ...p, id: p.id.trim(), index,
       priority: p.priority ?? 1, queue: p.queue ?? 0,
-      remaining: p.burst, first: null, completion: 0 }));
+      remaining: p.burst, first: null, completion: 0
+    }));
     const arrivals = [...processes].sort(arrivalOrder);
     const state = { processes, ready: [], timeline: [], time: 0, cursor: 0, completed: 0 };
     state.admit = (enqueue = p => state.ready.push(p)) => {
@@ -153,14 +155,18 @@
     if (algorithm === 'sjn') algorithm = 'sjf'; // Old-version compatibility.
     if (!ALGORITHMS.includes(algorithm)) throw new Error('Unknown scheduling algorithm.');
     const state = createState(input);
-    const runners = { fcfs, sjf, srtf, priority, priority_p: preemptivePriority, hrrn,
+    const runners = {
+      fcfs, sjf, srtf, priority, priority_p: preemptivePriority, hrrn,
       rr: s => roundRobin(s, quantum), mlq: s => multilevel(s, quantum, false),
-      mlfq: s => multilevel(s, quantum, true) };
+      mlfq: s => multilevel(s, quantum, true)
+    };
     runners[algorithm](state);
-    const rows = state.processes.map(p => ({ id: p.id, index: p.index,
+    const rows = state.processes.map(p => ({
+      id: p.id, index: p.index,
       arrival: p.arrival, burst: p.burst, priority: p.priority, queue: p.queue,
       completion: p.completion, turnaround: p.completion - p.arrival,
-      waiting: p.completion - p.arrival - p.burst, response: p.first - p.arrival }));
+      waiting: p.completion - p.arrival - p.burst, response: p.first - p.arrival
+    }));
     const totals = {}, averages = {};
     for (const key of ['arrival', 'burst', 'completion', 'turnaround', 'waiting', 'response']) {
       totals[key] = rows.reduce((sum, p) => sum + p[key], 0);
@@ -171,9 +177,11 @@
       if (i && segment.id !== null && state.timeline[i - 1].id !== null) contextSwitches++;
     });
     const time = state.time, busy = totals.burst;
-    return { algorithm, quantum, rows, timeline: state.timeline, contextSwitches,
+    return {
+      algorithm, quantum, rows, timeline: state.timeline, contextSwitches,
       makespan: time, busy, idle: time - busy, utilization: 100 * busy / time,
-      throughput: rows.length / time, totals, averages };
+      throughput: rows.length / time, totals, averages
+    };
   }
   // Read a finished schedule at any clock time without changing its results.
   // Per-process intervals keep playback fast even when Round Robin has many slices.
@@ -224,13 +232,17 @@
         const remaining = p.burst - executed;
         const status = p.arrival > t ? 'Not arrived' : remaining === 0 ? 'Completed' : p.index === running ? 'Running' : 'Ready';
         const level = result.algorithm === 'mlfq' ? (executed < result.quantum ? 0 : executed < 3 * result.quantum ? 1 : 2) : p.queue;
-        return { ...p, executed, remaining, status, level,
-          waitingSoFar: Math.max(0, Math.min(t, p.completion) - p.arrival - executed) };
+        return {
+          ...p, executed, remaining, status, level,
+          waitingSoFar: Math.max(0, Math.min(t, p.completion) - p.arrival - executed)
+        };
       });
       const eventIndex = lastAt(events, t, value => value);
-      return { time: t, running, segmentIndex, rows,
+      return {
+        time: t, running, segmentIndex, rows,
         previousEvent: events[Math.max(0, events[eventIndex] === t ? eventIndex - 1 : eventIndex)],
-        nextEvent: events[Math.min(events.length - 1, eventIndex + 1)] };
+        nextEvent: events[Math.min(events.length - 1, eventIndex + 1)]
+      };
     }
     return { at, events };
   }

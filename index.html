@@ -1,94 +1,377 @@
 <!doctype html>
 <html lang="en" data-app-version="20261003.9">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Process Scheduler | CPU Scheduling Simulator</title>
-<meta name="description" content="Simulate CPU scheduling algorithms taught in class. Compare execution timelines, waiting times, turnaround times, and response times.">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232553df'/%3E%3Cpath d='M7 9h18v4H7zm0 7h12v4H7zm0 7h8v3H7z' fill='white'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="styles.css?v=20261003.9"><script src="scheduler.js?v=20261003.9" defer></script><script src="app.js?v=20261003.9" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Process Scheduler | CPU Scheduling Simulator</title>
+    <meta name="description"
+        content="Simulate CPU scheduling algorithms taught in class. Compare execution timelines, waiting times, turnaround times, and response times.">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232553df'/%3E%3Cpath d='M7 9h18v4H7zm0 7h12v4H7zm0 7h8v3H7z' fill='white'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css?v=20261003.9">
+    <script src="scheduler.js?v=20261003.9" defer></script>
+    <script src="app.js?v=20261003.9" defer></script>
 </head>
+
 <body>
-<header class="topbar"><a class="brand" href="./"><span class="brand-icon" aria-hidden="true">▤</span> Process Scheduler</a><span class="course">OPERATING SYSTEMS LAB</span></header>
-<main>
-<div class="page-heading"><div><p class="eyebrow">CPU SCHEDULING SIMULATOR</p><h1>One CPU. Different decisions.</h1><p class="intro">Explore how scheduling changes the order of execution—and the time each process waits.</p></div><span class="tag">Single CPU · zero switch overhead</span></div>
-<div class="workspace">
-<section class="panel input-panel" aria-labelledby="input-title">
-<div class="panel-heading"><div><p class="eyebrow">01 / CONFIGURE</p><h2 id="input-title">Process queue</h2></div><span id="process-count" class="count"></span></div>
-<p class="muted small">Enter process details below. All times use whole-number units.</p>
-<div class="configuration-grid">
-<div><label class="field-label" for="algorithm">Scheduling algorithm</label><select id="algorithm"><option value="fcfs">FCFS</option><option value="sjf">SJF — Non-Preemptive</option><option value="srtf">SRTF — Preemptive SJF</option><option value="priority">Priority — Non-Preemptive</option><option value="priority_p">Priority — Preemptive</option><option value="rr">Round Robin</option></select></div>
-<div><label class="field-label" for="process-number">Number of processes</label><div class="count-controls"><button id="count-minus" type="button" aria-label="Remove last process">−</button><input id="process-number" type="text" inputmode="numeric" maxlength="2" value="4" aria-describedby="count-help"><button id="count-plus" type="button" aria-label="Add one process">+</button></div><p id="count-help" class="small muted">1–30. Type a count and press Enter, or use + / −. Reducing it removes the last rows.</p></div>
-<div class="quantum-field"><label class="field-label" for="quantum">Time quantum (q)</label><input id="quantum" type="text" inputmode="numeric" maxlength="5" value="2"><p id="quantum-help" class="small muted">Round Robin uses q as its time slice.</p></div>
-</div>
-<div class="table-scroll process-editor"><table class="input-table"><thead><tr><th scope="col">Process</th><th scope="col">Arrival time</th><th scope="col">Burst time</th><th scope="col">Priority</th><th id="mlq-column" scope="col" hidden>MLQ queue</th><th scope="col"><span class="sr-only">Remove</span></th></tr></thead><tbody id="process-inputs"></tbody></table></div>
-<div class="editor-footer"><button id="add-process" class="add-button" type="button">+ Add process</button><p id="editor-help" class="small muted">Smaller priority number = higher priority. These inputs also feed the comparison.</p></div>
-<p id="error" class="error" role="alert" hidden></p>
-<div class="action-bar"><button id="run" class="primary" type="button">Run simulation</button>
-<div class="secondary-actions"><button id="sample" type="button">Load sample</button><button id="reset" type="button">Reset</button></div></div>
-</section>
-<div class="output-column">
-<section class="panel result-panel" aria-labelledby="result-title">
-<div class="panel-heading"><div><p class="eyebrow">02 / SIMULATE</p><h2 id="result-title" tabindex="-1">First-Come-First-Served</h2></div><span id="run-state" class="tag" role="status">Sample results</span></div>
-<p id="algorithm-description" class="muted"></p>
-<div class="report-actions" aria-label="Save results"><button id="export-csv" type="button">Export CSV report</button><button id="print-results" type="button">Print / Save PDF</button><span id="report-status" class="small muted" role="status"></span></div>
-<div class="metrics"><div><span>Avg. waiting</span><strong id="avg-wait"></strong><small>time units</small></div><div><span>Avg. turnaround</span><strong id="avg-turn"></strong><small>time units</small></div><div><span>Avg. response</span><strong id="avg-response"></strong><small>time units</small></div></div>
-<div class="timeline-heading"><h3>Execution timeline</h3><span id="total-time" class="small muted"></span></div>
-<div id="gantt" class="gantt-scroll" tabindex="0" role="region" aria-label="Gantt chart, horizontally scrollable"></div>
-<p id="timeline-note" class="small muted"></p>
-<div id="legend" class="legend"></div>
-<details id="playback" class="playback-panel" open><summary>Step-by-step execution</summary>
-<p id="playback-help" class="small muted">At time t, burst used and waiting are counted up to t. The CPU shown runs during the next time unit. Final results below cover the complete schedule.</p>
-<fieldset id="playback-controls" class="playback-controls" aria-describedby="playback-help"><legend class="sr-only">Execution playback controls</legend>
-<button id="playback-reset" type="button">Restart</button><button id="playback-previous" type="button">−1 unit</button><button id="playback-play" type="button" aria-pressed="false">Play</button><button id="playback-next" type="button">+1 unit</button><button id="playback-event" type="button">Next event</button>
-<div class="playback-speed"><label for="playback-speed">Speed</label><select id="playback-speed"><option value="1000">1 unit / second</option><option value="500" selected>2 units / second</option><option value="200">5 units / second</option></select></div>
-<div class="playback-scrubber"><label for="playback-time">Clock: <output id="playback-clock" for="playback-time"></output></label><input id="playback-time" type="range" min="0" max="1" step="1" value="0" aria-label="Playback clock"></div>
-</fieldset>
-<div class="playback-state"><strong id="playback-cpu"></strong><span id="playback-counts" class="small"></span></div>
-<p id="playback-explanation" class="small"></p><p id="playback-events" class="small muted"></p>
-<div class="table-scroll"><table class="playback-table"><caption class="sr-only">Process states at the playback clock, in input order</caption><thead><tr><th>Process</th><th>State</th><th>CPU used</th><th>Remaining</th><th>Wait so far</th><th id="playback-detail-heading">Priority</th></tr></thead><tbody id="playback-body"></tbody></table></div>
-<p id="playback-note" class="small muted">Processes are listed in input order. Use Next event to jump to an arrival, completion, CPU change, or quantum boundary.</p>
-</details>
-<div class="run-stats"><span>CPU utilization <b id="utilization"></b></span><span>Context switches <b id="switches"></b></span><span>Idle time <b id="idle"></b></span><span>Throughput <b id="throughput"></b></span></div>
-<h3 class="table-title">Process results</h3>
-<div class="table-scroll"><table class="results-table"><thead><tr><th>Process</th><th>Arrival</th><th>Burst</th><th>Completion</th><th>Turnaround</th><th>Waiting</th><th>Response</th></tr></thead><tbody id="results-body"></tbody><tfoot id="results-summary"></tfoot></table></div>
-</section>
-<section class="panel compare-panel" aria-labelledby="compare-title"><div class="panel-heading"><div><p class="eyebrow">03 / COMPARE</p><h2 id="compare-title">Same workload. Six approaches.</h2></div></div><p class="muted small">Click an algorithm below to view its timeline and detailed results using your current process inputs. Lower averages are highlighted in green.</p><div class="table-scroll"><table class="comparison-table"><thead><tr><th>Algorithm</th><th>Avg. waiting</th><th>Avg. turnaround</th><th>Avg. response</th><th>Switches</th></tr></thead><tbody id="comparison-body"></tbody></table></div><p id="comparison-note" class="small muted"></p></section>
-</div></div>
-<details class="panel notes"><summary>Questions &amp; answers: understand the simulation</summary><div class="faq-grid">
-<section class="faq-group"><h3>Inputs and time calculations</h3>
-<details class="faq-item"><summary>What do arrival time and burst time mean?</summary><p>Arrival time is when a process becomes ready. Burst time is the CPU time it needs. Enter arrival 0 for every process if they all arrive together.</p></details>
-<details class="faq-item"><summary>What is completion time (CT)?</summary><p>CT is the clock time when a process finishes. For example, a process arriving at 2 and finishing at 9 has CT = 9.</p></details>
-<details class="faq-item"><summary>How is turnaround time (TAT) calculated?</summary><p><b>TAT = CT − arrival time.</b> It includes all time from arrival until completion. In the example above, TAT = 9 − 2 = 7.</p></details>
-<details class="faq-item"><summary>How is waiting time (WT) calculated?</summary><p><b>WT = TAT − burst time.</b> If TAT is 7 and burst is 4, WT = 3. This is the total time spent ready but not running.</p></details>
-<details class="faq-item"><summary>What is response time (RT)?</summary><p><b>RT = first start time − arrival time.</b> It measures the wait before the first CPU execution. A preempted process can have a low RT and a much larger total WT.</p></details>
-<details class="faq-item"><summary>How are totals and averages calculated?</summary><p>Total is the sum of a column. <b>Average = total ÷ process count.</b> For waiting times 0, 3 and 6, total WT = 9 and average WT = 3. Total CT is a sum of finish timestamps; it is not elapsed CPU time.</p></details>
-<details class="faq-item"><summary>Which inputs affect which algorithms?</summary><p id="input-algorithms-help">Arrival and burst affect all available algorithms. Priority numbers affect the two Priority variants. Quantum affects Round Robin. The comparison uses the same input rows for every algorithm.</p></details>
-</section>
-<section class="faq-group"><h3>How the algorithms choose a process</h3>
-<details class="faq-item"><summary>How does FCFS work?</summary><p>The earliest arrived ready process runs to completion. Equal arrival times use the order of the input rows.</p></details>
-<details class="faq-item"><summary>How does non-preemptive SJF work?</summary><p>The shortest burst among processes that have already arrived runs to completion. Later arrivals cannot interrupt it.</p></details>
-<details class="faq-item"><summary>How does SRTF differ from SJF?</summary><p>SRTF is preemptive SJF. Every time unit, it chooses the smallest remaining burst. A shorter arriving process can interrupt the current one. Equal remaining times use arrival time, then input order.</p></details>
-<details class="faq-item"><summary>What do priority numbers mean?</summary><p><b>A smaller number means higher priority.</b> Priority 1 runs before priority 3 when both are ready. Equal-priority dispatch ties use arrival time, then input order.</p></details>
-<details class="faq-item"><summary>How do the two Priority variants differ?</summary><p>Non-preemptive Priority lets the selected job finish. Preemptive Priority interrupts it when a strictly higher-priority job arrives. An equal-priority arrival does not interrupt the current job.</p></details>
-<details class="faq-item"><summary>How does Round Robin use the quantum?</summary><p>Each ready job gets at most q CPU time units. If unfinished, it goes to the back of the ready queue. Jobs arriving during a slice or exactly at its end are added before the current job is requeued.</p></details>
-<details id="faq-hrrn" class="faq-item" hidden><summary>How does HRRN work?</summary><p>At each dispatch, calculate <b>(current waiting time + burst) ÷ burst</b>. The highest ratio runs to completion. For wait 6 and burst 2, the ratio is 4. Recalculate ratios after every completion. HRRN is non-preemptive.</p></details>
-<details id="faq-mlq" class="faq-item" hidden><summary>Which queues does MLQ use here?</summary><p><b>High (Q0): Round Robin with q. Low (Q1): FCFS.</b> High always takes precedence and can interrupt Low. A process stays in its assigned queue.</p></details>
-<details id="faq-mlfq" class="faq-item" hidden><summary>How do processes move in MLFQ?</summary><p>Every new job enters <b>Q0 (RR, q)</b>. If unfinished after its CPU allowance, it moves to <b>Q1 (RR, 2q)</b>, then <b>Q2 (FCFS)</b>. Higher queues interrupt lower ones. An interrupted job keeps its queue position and consumed allowance. This version has no aging or periodic boost.</p></details>
-</section>
-<section class="faq-group"><h3>Reading the chart and comparing results</h3>
-<details class="faq-item"><summary>How do I use step-by-step execution?</summary><p>Use +1 unit and −1 unit to move the clock, Play to animate, or the slider to inspect any time. Next event skips to a scheduling event. The state table shows CPU time used, remaining burst and waiting so far. At a boundary, arrivals and completions have already been applied, and Running identifies the process selected for the next unit. The main result table always shows final values.</p></details>
-<details class="faq-item"><summary>What does the CSV report include?</summary><p>It includes the selected algorithm, inputs, process results, totals, averages, CPU statistics, the comparison of all available algorithms and the complete execution timeline. Open it in Excel or another spreadsheet app. IDs beginning with spreadsheet formula characters are exported as text. Changed inputs are validated and recalculated before export.</p></details>
-<details class="faq-item"><summary>How can I print results or save a PDF?</summary><p>Click Print / Save PDF. In the browser print dialog, choose your printer or Save as PDF. The report includes the selected algorithm, inputs, final results and comparison. A long timeline is limited to its first 100 segments in print; CSV includes every segment. Playback controls are excluded from the report.</p></details>
-<details class="faq-item"><summary>What does the Gantt chart show?</summary><p>It shows CPU execution order. Each block names a process and its time boundaries; Idle means no process was ready. Adjacent intervals for the same process are merged. Widths have a readability minimum, so use the labels for exact durations.</p></details>
-<details class="faq-item"><summary>Why does the timeline sometimes scroll?</summary><p>Long schedules need room for their time labels. Swipe or scroll inside the chart to see later blocks. A long schedule shows up to 400 segments at a time, with a notice. Playback moves the chart window to the current time; all calculations use the full schedule.</p></details>
-<details class="faq-item"><summary>How are CPU utilization and throughput calculated?</summary><p><b>Utilization = total burst ÷ elapsed time × 100.</b> <b>Throughput = process count ÷ elapsed time.</b> Elapsed time runs from clock 0 to the final completion, including initial idle time.</p></details>
-<details class="faq-item"><summary>What counts as a context switch here?</summary><p>A direct change from one running process to a different process counts as one switch. The initial dispatch, a transition through Idle, and consecutive slices of the same process do not count. Switching takes zero time in this simulation.</p></details>
-<details class="faq-item"><summary>How can I view another algorithm without re-entering inputs?</summary><p>Click its name in the comparison table, or change the algorithm dropdown. The process inputs stay in place, and its timeline, results, totals and averages appear. If you changed an input, it is recalculated before switching.</p></details>
-<details class="faq-item"><summary>Does the green highlight mean an algorithm is always best?</summary><p>Green marks the lowest average in that column for your current workload, including ties. A different workload or quantum can change the result. Waiting time and response time can favor different algorithms.</p></details>
-<details class="faq-item"><summary>What are the limits and assumptions?</summary><p>This models one CPU and one CPU burst per process, with no I/O blocking. Use 1–30 processes. Arrival: 0–10,000; burst, quantum and priority: 1–10,000. Times are whole-number abstract units. It simulates scheduling; it does not change your computer’s scheduler.</p></details>
-</section>
-</div></details>
-<footer>Process Scheduler Simulation <span id="algorithm-footer">FCFS / SJF / SRTF / PRIORITY NP & P / RR</span></footer>
-</main>
-<article id="print-report" aria-label="CPU scheduling report"></article>
-</body></html>
+    <header class="topbar"><a class="brand" href="./"><span class="brand-icon" aria-hidden="true">▤</span> Process
+            Scheduler</a><span class="course">OPERATING SYSTEMS LAB</span></header>
+    <main>
+        <div class="page-heading">
+            <div>
+                <p class="eyebrow">CPU SCHEDULING SIMULATOR</p>
+                <h1>One CPU. Different decisions.</h1>
+                <p class="intro">Explore how scheduling changes the order of execution—and the time each process waits.
+                </p>
+            </div><span class="tag">Single CPU · zero switch overhead</span>
+        </div>
+        <div class="workspace">
+            <section class="panel input-panel" aria-labelledby="input-title">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">01 / CONFIGURE</p>
+                        <h2 id="input-title">Process queue</h2>
+                    </div><span id="process-count" class="count"></span>
+                </div>
+                <p class="muted small">Enter process details below. All times use whole-number units.</p>
+                <div class="configuration-grid">
+                    <div><label class="field-label" for="algorithm">Scheduling algorithm</label><select id="algorithm">
+                            <option value="fcfs">FCFS</option>
+                            <option value="sjf">SJF — Non-Preemptive</option>
+                            <option value="srtf">SRTF — Preemptive SJF</option>
+                            <option value="priority">Priority — Non-Preemptive</option>
+                            <option value="priority_p">Priority — Preemptive</option>
+                            <option value="rr">Round Robin</option>
+                        </select></div>
+                    <div><label class="field-label" for="process-number">Number of processes</label>
+                        <div class="count-controls"><button id="count-minus" type="button"
+                                aria-label="Remove last process">−</button><input id="process-number" type="text"
+                                inputmode="numeric" maxlength="2" value="4" aria-describedby="count-help"><button
+                                id="count-plus" type="button" aria-label="Add one process">+</button></div>
+                        <p id="count-help" class="small muted">1–30. Type a count and press Enter, or use + / −.
+                            Reducing it removes the last rows.</p>
+                    </div>
+                    <div class="quantum-field"><label class="field-label" for="quantum">Time quantum (q)</label><input
+                            id="quantum" type="text" inputmode="numeric" maxlength="5" value="2">
+                        <p id="quantum-help" class="small muted">Round Robin uses q as its time slice.</p>
+                    </div>
+                </div>
+                <div class="table-scroll process-editor">
+                    <table class="input-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Process</th>
+                                <th scope="col">Arrival time</th>
+                                <th scope="col">Burst time</th>
+                                <th scope="col">Priority</th>
+                                <th id="mlq-column" scope="col" hidden>MLQ queue</th>
+                                <th scope="col"><span class="sr-only">Remove</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="process-inputs"></tbody>
+                    </table>
+                </div>
+                <div class="editor-footer"><button id="add-process" class="add-button" type="button">+ Add
+                        process</button>
+                    <p id="editor-help" class="small muted">Smaller priority number = higher priority. These inputs also
+                        feed the comparison.</p>
+                </div>
+                <p id="error" class="error" role="alert" hidden></p>
+                <div class="action-bar"><button id="run" class="primary" type="button">Run simulation</button>
+                    <div class="secondary-actions"><button id="sample" type="button">Load sample</button><button
+                            id="reset" type="button">Reset</button></div>
+                </div>
+            </section>
+            <div class="output-column">
+                <section class="panel result-panel" aria-labelledby="result-title">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">02 / SIMULATE</p>
+                            <h2 id="result-title" tabindex="-1">First-Come-First-Served</h2>
+                        </div><span id="run-state" class="tag" role="status">Sample results</span>
+                    </div>
+                    <p id="algorithm-description" class="muted"></p>
+                    <div class="report-actions" aria-label="Save results"><button id="export-csv" type="button">Export
+                            CSV report</button><button id="print-results" type="button">Print / Save PDF</button><span
+                            id="report-status" class="small muted" role="status"></span></div>
+                    <div class="metrics">
+                        <div><span>Avg. waiting</span><strong id="avg-wait"></strong><small>time units</small></div>
+                        <div><span>Avg. turnaround</span><strong id="avg-turn"></strong><small>time units</small></div>
+                        <div><span>Avg. response</span><strong id="avg-response"></strong><small>time units</small>
+                        </div>
+                    </div>
+                    <div class="timeline-heading">
+                        <h3>Execution timeline</h3><span id="total-time" class="small muted"></span>
+                    </div>
+                    <div id="gantt" class="gantt-scroll" tabindex="0" role="region"
+                        aria-label="Gantt chart, horizontally scrollable"></div>
+                    <p id="timeline-note" class="small muted"></p>
+                    <div id="legend" class="legend"></div>
+                    <details id="playback" class="playback-panel" open>
+                        <summary>Step-by-step execution</summary>
+                        <p id="playback-help" class="small muted">At time t, burst used and waiting are counted up to t.
+                            The CPU shown runs during the next time unit. Final results below cover the complete
+                            schedule.</p>
+                        <fieldset id="playback-controls" class="playback-controls" aria-describedby="playback-help">
+                            <legend class="sr-only">Execution playback controls</legend>
+                            <button id="playback-reset" type="button">Restart</button><button id="playback-previous"
+                                type="button">−1 unit</button><button id="playback-play" type="button"
+                                aria-pressed="false">Play</button><button id="playback-next" type="button">+1
+                                unit</button><button id="playback-event" type="button">Next event</button>
+                            <div class="playback-speed"><label for="playback-speed">Speed</label><select
+                                    id="playback-speed">
+                                    <option value="1000">1 unit / second</option>
+                                    <option value="500" selected>2 units / second</option>
+                                    <option value="200">5 units / second</option>
+                                </select></div>
+                            <div class="playback-scrubber"><label for="playback-time">Clock: <output id="playback-clock"
+                                        for="playback-time"></output></label><input id="playback-time" type="range"
+                                    min="0" max="1" step="1" value="0" aria-label="Playback clock"></div>
+                        </fieldset>
+                        <div class="playback-state"><strong id="playback-cpu"></strong><span id="playback-counts"
+                                class="small"></span></div>
+                        <p id="playback-explanation" class="small"></p>
+                        <p id="playback-events" class="small muted"></p>
+                        <div class="table-scroll">
+                            <table class="playback-table">
+                                <caption class="sr-only">Process states at the playback clock, in input order</caption>
+                                <thead>
+                                    <tr>
+                                        <th>Process</th>
+                                        <th>State</th>
+                                        <th>CPU used</th>
+                                        <th>Remaining</th>
+                                        <th>Wait so far</th>
+                                        <th id="playback-detail-heading">Priority</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="playback-body"></tbody>
+                            </table>
+                        </div>
+                        <p id="playback-note" class="small muted">Processes are listed in input order. Use Next event to
+                            jump to an arrival, completion, CPU change, or quantum boundary.</p>
+                    </details>
+                    <div class="run-stats"><span>CPU utilization <b id="utilization"></b></span><span>Context switches
+                            <b id="switches"></b></span><span>Idle time <b id="idle"></b></span><span>Throughput <b
+                                id="throughput"></b></span></div>
+                    <h3 class="table-title">Process results</h3>
+                    <div class="table-scroll">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Process</th>
+                                    <th>Arrival</th>
+                                    <th>Burst</th>
+                                    <th>Completion</th>
+                                    <th>Turnaround</th>
+                                    <th>Waiting</th>
+                                    <th>Response</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-body"></tbody>
+                            <tfoot id="results-summary"></tfoot>
+                        </table>
+                    </div>
+                </section>
+                <section class="panel compare-panel" aria-labelledby="compare-title">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">03 / COMPARE</p>
+                            <h2 id="compare-title">Same workload. Six approaches.</h2>
+                        </div>
+                    </div>
+                    <p class="muted small">Click an algorithm below to view its timeline and detailed results using your
+                        current process inputs. Lower averages are highlighted in green.</p>
+                    <div class="table-scroll">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Algorithm</th>
+                                    <th>Avg. waiting</th>
+                                    <th>Avg. turnaround</th>
+                                    <th>Avg. response</th>
+                                    <th>Switches</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparison-body"></tbody>
+                        </table>
+                    </div>
+                    <p id="comparison-note" class="small muted"></p>
+                </section>
+            </div>
+        </div>
+        <details class="panel notes">
+            <summary>Questions &amp; answers: understand the simulation</summary>
+            <div class="faq-grid">
+                <section class="faq-group">
+                    <h3>Inputs and time calculations</h3>
+                    <details class="faq-item">
+                        <summary>What do arrival time and burst time mean?</summary>
+                        <p>Arrival time is when a process becomes ready. Burst time is the CPU time it needs. Enter
+                            arrival 0 for every process if they all arrive together.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What is completion time (CT)?</summary>
+                        <p>CT is the clock time when a process finishes. For example, a process arriving at 2 and
+                            finishing at 9 has CT = 9.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How is turnaround time (TAT) calculated?</summary>
+                        <p><b>TAT = CT − arrival time.</b> It includes all time from arrival until completion. In the
+                            example above, TAT = 9 − 2 = 7.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How is waiting time (WT) calculated?</summary>
+                        <p><b>WT = TAT − burst time.</b> If TAT is 7 and burst is 4, WT = 3. This is the total time
+                            spent ready but not running.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What is response time (RT)?</summary>
+                        <p><b>RT = first start time − arrival time.</b> It measures the wait before the first CPU
+                            execution. A preempted process can have a low RT and a much larger total WT.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How are totals and averages calculated?</summary>
+                        <p>Total is the sum of a column. <b>Average = total ÷ process count.</b> For waiting times 0, 3
+                            and 6, total WT = 9 and average WT = 3. Total CT is a sum of finish timestamps; it is not
+                            elapsed CPU time.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Which inputs affect which algorithms?</summary>
+                        <p id="input-algorithms-help">Arrival and burst affect all available algorithms. Priority
+                            numbers affect the two Priority variants. Quantum affects Round Robin. The comparison uses
+                            the same input rows for every algorithm.</p>
+                    </details>
+                </section>
+                <section class="faq-group">
+                    <h3>How the algorithms choose a process</h3>
+                    <details class="faq-item">
+                        <summary>How does FCFS work?</summary>
+                        <p>The earliest arrived ready process runs to completion. Equal arrival times use the order of
+                            the input rows.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How does non-preemptive SJF work?</summary>
+                        <p>The shortest burst among processes that have already arrived runs to completion. Later
+                            arrivals cannot interrupt it.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How does SRTF differ from SJF?</summary>
+                        <p>SRTF is preemptive SJF. Every time unit, it chooses the smallest remaining burst. A shorter
+                            arriving process can interrupt the current one. Equal remaining times use arrival time, then
+                            input order.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What do priority numbers mean?</summary>
+                        <p><b>A smaller number means higher priority.</b> Priority 1 runs before priority 3 when both
+                            are ready. Equal-priority dispatch ties use arrival time, then input order.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How do the two Priority variants differ?</summary>
+                        <p>Non-preemptive Priority lets the selected job finish. Preemptive Priority interrupts it when
+                            a strictly higher-priority job arrives. An equal-priority arrival does not interrupt the
+                            current job.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How does Round Robin use the quantum?</summary>
+                        <p>Each ready job gets at most q CPU time units. If unfinished, it goes to the back of the ready
+                            queue. Jobs arriving during a slice or exactly at its end are added before the current job
+                            is requeued.</p>
+                    </details>
+                    <details id="faq-hrrn" class="faq-item" hidden>
+                        <summary>How does HRRN work?</summary>
+                        <p>At each dispatch, calculate <b>(current waiting time + burst) ÷ burst</b>. The highest ratio
+                            runs to completion. For wait 6 and burst 2, the ratio is 4. Recalculate ratios after every
+                            completion. HRRN is non-preemptive.</p>
+                    </details>
+                    <details id="faq-mlq" class="faq-item" hidden>
+                        <summary>Which queues does MLQ use here?</summary>
+                        <p><b>High (Q0): Round Robin with q. Low (Q1): FCFS.</b> High always takes precedence and can
+                            interrupt Low. A process stays in its assigned queue.</p>
+                    </details>
+                    <details id="faq-mlfq" class="faq-item" hidden>
+                        <summary>How do processes move in MLFQ?</summary>
+                        <p>Every new job enters <b>Q0 (RR, q)</b>. If unfinished after its CPU allowance, it moves to
+                            <b>Q1 (RR, 2q)</b>, then <b>Q2 (FCFS)</b>. Higher queues interrupt lower ones. An
+                            interrupted job keeps its queue position and consumed allowance. This version has no aging
+                            or periodic boost.</p>
+                    </details>
+                </section>
+                <section class="faq-group">
+                    <h3>Reading the chart and comparing results</h3>
+                    <details class="faq-item">
+                        <summary>How do I use step-by-step execution?</summary>
+                        <p>Use +1 unit and −1 unit to move the clock, Play to animate, or the slider to inspect any
+                            time. Next event skips to a scheduling event. The state table shows CPU time used, remaining
+                            burst and waiting so far. At a boundary, arrivals and completions have already been applied,
+                            and Running identifies the process selected for the next unit. The main result table always
+                            shows final values.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What does the CSV report include?</summary>
+                        <p>It includes the selected algorithm, inputs, process results, totals, averages, CPU
+                            statistics, the comparison of all available algorithms and the complete execution timeline.
+                            Open it in Excel or another spreadsheet app. IDs beginning with spreadsheet formula
+                            characters are exported as text. Changed inputs are validated and recalculated before
+                            export.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How can I print results or save a PDF?</summary>
+                        <p>Click Print / Save PDF. In the browser print dialog, choose your printer or Save as PDF. The
+                            report includes the selected algorithm, inputs, final results and comparison. A long
+                            timeline is limited to its first 100 segments in print; CSV includes every segment. Playback
+                            controls are excluded from the report.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What does the Gantt chart show?</summary>
+                        <p>It shows CPU execution order. Each block names a process and its time boundaries; Idle means
+                            no process was ready. Adjacent intervals for the same process are merged. Widths have a
+                            readability minimum, so use the labels for exact durations.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Why does the timeline sometimes scroll?</summary>
+                        <p>Long schedules need room for their time labels. Swipe or scroll inside the chart to see later
+                            blocks. A long schedule shows up to 400 segments at a time, with a notice. Playback moves
+                            the chart window to the current time; all calculations use the full schedule.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How are CPU utilization and throughput calculated?</summary>
+                        <p><b>Utilization = total burst ÷ elapsed time × 100.</b> <b>Throughput = process count ÷
+                                elapsed time.</b> Elapsed time runs from clock 0 to the final completion, including
+                            initial idle time.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What counts as a context switch here?</summary>
+                        <p>A direct change from one running process to a different process counts as one switch. The
+                            initial dispatch, a transition through Idle, and consecutive slices of the same process do
+                            not count. Switching takes zero time in this simulation.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How can I view another algorithm without re-entering inputs?</summary>
+                        <p>Click its name in the comparison table, or change the algorithm dropdown. The process inputs
+                            stay in place, and its timeline, results, totals and averages appear. If you changed an
+                            input, it is recalculated before switching.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Does the green highlight mean an algorithm is always best?</summary>
+                        <p>Green marks the lowest average in that column for your current workload, including ties. A
+                            different workload or quantum can change the result. Waiting time and response time can
+                            favor different algorithms.</p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What are the limits and assumptions?</summary>
+                        <p>This models one CPU and one CPU burst per process, with no I/O blocking. Use 1–30 processes.
+                            Arrival: 0–10,000; burst, quantum and priority: 1–10,000. Times are whole-number abstract
+                            units. It simulates scheduling; it does not change your computer’s scheduler.</p>
+                    </details>
+                </section>
+            </div>
+        </details>
+        <footer>Process Scheduler Simulation <span id="algorithm-footer">FCFS / SJF / SRTF / PRIORITY NP & P / RR</span>
+        </footer>
+    </main>
+    <article id="print-report" aria-label="CPU scheduling report"></article>
+</body>
+
+</html>
